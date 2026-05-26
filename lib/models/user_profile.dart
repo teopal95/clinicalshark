@@ -8,6 +8,8 @@ class UserProfile {
   final String? city;
   final String? country;
   final bool profileComplete;
+  final String? healthNarrative;
+  final String? narrativeSearchQuery;
 
   const UserProfile({
     required this.uid,
@@ -19,6 +21,8 @@ class UserProfile {
     this.city,
     this.country,
     this.profileComplete = false,
+    this.healthNarrative,
+    this.narrativeSearchQuery,
   });
 
   int? get ageYears {
@@ -42,6 +46,8 @@ class UserProfile {
         'city': city,
         'country': country,
         'profileComplete': profileComplete,
+        'healthNarrative': healthNarrative,
+        'narrativeSearchQuery': narrativeSearchQuery,
       };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
@@ -58,6 +64,8 @@ class UserProfile {
         city: json['city'] as String?,
         country: json['country'] as String?,
         profileComplete: json['profileComplete'] as bool? ?? false,
+        healthNarrative: json['healthNarrative'] as String?,
+        narrativeSearchQuery: json['narrativeSearchQuery'] as String?,
       );
 
   UserProfile copyWith({
@@ -73,6 +81,10 @@ class UserProfile {
     String? country,
     bool clearCountry = false,
     bool? profileComplete,
+    String? healthNarrative,
+    bool clearHealthNarrative = false,
+    String? narrativeSearchQuery,
+    bool clearNarrativeSearchQuery = false,
   }) =>
       UserProfile(
         uid: uid ?? this.uid,
@@ -85,5 +97,7 @@ class UserProfile {
         city: clearCity ? null : (city ?? this.city),
         country: clearCountry ? null : (country ?? this.country),
         profileComplete: profileComplete ?? this.profileComplete,
+        healthNarrative: clearHealthNarrative ? null : (healthNarrative ?? this.healthNarrative),
+        narrativeSearchQuery: clearNarrativeSearchQuery ? null : (narrativeSearchQuery ?? this.narrativeSearchQuery),
       );
 }

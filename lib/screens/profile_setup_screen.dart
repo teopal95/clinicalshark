@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/user_profile.dart';
 import '../providers/auth_provider.dart';
+import '../services/narrative_service.dart';
 import '../theme/app_theme.dart';
 
 class ProfileSetupScreen extends StatefulWidget {
@@ -26,6 +27,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   // Page 2
   final Set<String> _selectedConditions = {};
   final _customConditionController = TextEditingController();
+  final _narrativeController = TextEditingController();
+  bool _analyzingNarrative = false;
+  String? _narrativeSearchQuery;
 
   // Page 3
   final _cityController = TextEditingController();
@@ -70,6 +74,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       _selectedConditions.addAll(profile.conditions);
       _cityController.text = profile.city ?? '';
       _countryController.text = profile.country ?? '';
+      _narrativeController.text = profile.healthNarrative ?? '';
+      _narrativeSearchQuery = profile.narrativeSearchQuery;
     } else {
       // New user — use the name/email captured at registration time
       _nameController.text = auth.pendingName;
@@ -77,11 +83,47 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
     setState(() {});
   }
 
+  Future<void> _analyzeNarrative() async {
+    final text = _narrativeController.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() => _analyzingNarrative = true);
+    try {
+      final result = await MockNarrativeService().analyze(text);
+      if (mounted) {
+        setState(() {
+          _selectedConditions.addAll(result.conditions);
+          _narrativeSearchQuery = result.searchQuery;
+        });
+        final found = result.conditions.length;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              found > 0
+                  ? 'Identified $found condition${found == 1 ? '' : 's'} from your description.'
+                  : 'No specific conditions detected — search query generated from your text.',
+            ),
+            backgroundColor: AppTheme.accentColor,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Analysis failed. Please try again.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _analyzingNarrative = false);
+    }
+  }
+
   @override
   void dispose() {
     _pageController.dispose();
     _nameController.dispose();
     _customConditionController.dispose();
+    _narrativeController.dispose();
     _cityController.dispose();
     _countryController.dispose();
     super.dispose();
@@ -113,6 +155,8 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       city: _cityController.text.trim().isEmpty ? null : _cityController.text.trim(),
       country: _countryController.text.trim().isEmpty ? null : _countryController.text.trim(),
       profileComplete: true,
+      healthNarrative: _narrativeController.text.trim().isEmpty ? null : _narrativeController.text.trim(),
+      narrativeSearchQuery: _narrativeSearchQuery,
     );
 
     try {
@@ -264,10 +308,118 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Select conditions you have or are interested in researching.',
+            'Describe your health in your own words, or pick from common conditions below.',
             style: GoogleFonts.inter(fontSize: 14, color: Colors.grey[600]),
           ),
           const SizedBox(height: 20),
+
+          // ── AI narrative section ──────────────────────────────────────
+          _label('Tell us about your health history'),
+          const SizedBox(height: 6),
+          TextFormField(
+            controller: _narrativeController,
+            maxLines: 5,
+            minLines: 3,
+            style: GoogleFonts.inter(fontSize: 14),
+            decoration: InputDecoration(
+              hintText:
+                  'e.g. "I\'m 52 with type 2 diabetes and high blood pressure. I\'ve been on metformin for 3 years and my last HbA1c was 7.8. I also have mild kidney disease."',
+              hintStyle: GoogleFonts.inter(
+                  fontSize: 13, color: Colors.grey[400], height: 1.5),
+              filled: true,
+              fillColor: Colors.white,
+              contentPadding: const EdgeInsets.all(14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.grey.shade300),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide:
+                    const BorderSide(color: AppTheme.primaryColor, width: 1.5),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _analyzingNarrative ? null : _analyzeNarrative,
+              icon: _analyzingNarrative
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.auto_awesome, size: 18),
+              label: Text(
+                _analyzingNarrative ? 'Analyzing…' : 'Analyze with AI',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w600),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 13),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+          if (_narrativeSearchQuery != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.search, size: 15,
+                      color: AppTheme.primaryColor.withValues(alpha: 0.7)),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Search query: "$_narrativeSearchQuery"',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppTheme.primaryColor,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(child: Divider(color: Colors.grey.shade300)),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Text(
+                  'or select common conditions',
+                  style: GoogleFonts.inter(
+                      fontSize: 12, color: Colors.grey[500]),
+                ),
+              ),
+              Expanded(child: Divider(color: Colors.grey.shade300)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // ── end AI section ────────────────────────────────────────────
+
           Wrap(
             spacing: 8,
             runSpacing: 8,

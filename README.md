@@ -10,10 +10,21 @@ ClinicalShark connects to the live [ClinicalTrials.gov API v2](https://clinicalt
 - **Filter results** — narrow by trial status (Recruiting, Completed, etc.) and phase (Phase 1–4)
 - **Infinite scroll** — results load progressively as you browse
 - **Trial detail view** — full study info including eligibility criteria, locations, and contact details
+- **Plain-language health profile** — describe your medical history in your own words; the app translates everyday language into clinical search terms and surfaces a personalised "Trials for you" shortcut on the home screen
 
 ## Screenshots
 
 > Coming soon
+
+## How the health profile works
+
+During profile setup, users describe their medical history in plain language — no forms, no dropdowns, no medical jargon required.
+
+> *"I'm 52 with type 2 diabetes and high blood pressure. I've been on metformin for 3 years and also have mild kidney disease."*
+
+The app recognises conditions and medications in the text, maps them to accepted clinical terminology, and builds a search query optimised for ClinicalTrials.gov. Matched conditions are shown as editable chips so the user stays in control. Once saved, a **Trials matched to your profile** shortcut appears on the home screen for one-tap personalised search.
+
+The language-matching engine runs fully on-device with no external API required, making it suitable for offline use and demo environments.
 
 ## Tech Stack
 
